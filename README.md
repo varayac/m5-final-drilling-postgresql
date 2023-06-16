@@ -207,12 +207,14 @@ Output: `336 records`
 
 ```sql
 SELECT
-    table_name AS nombre_tabla,
-    column_name AS nombre_columna,
-    is_nullable AS acepta_nulos,
-    data_type AS tipo_dato
+   table_name AS nombre_tabla,
+   column_name AS nombre_columna,
+   udt_name AS tipo_dato,
+   character_maximum_length AS largo,
+   is_nullable AS es_null,
+   column_default AS defecto
 FROM
-    information_schema.columns
+   information_schema.columns
 WHERE
     table_schema = 'public'
 ORDER BY nombre_tabla;
@@ -221,11 +223,45 @@ ORDER BY nombre_tabla;
 Output:
 
 ```
-actor	last_name	NO	character varying
-actor	first_name	NO	character varying
-... ...
+"actor"	"last_update"	"timestamp"		"NO"	"now()"
+"actor"	"first_name"	"varchar"	45	"NO"
+"actor"	"actor_id"	   "int4"		   "NO"	"nextval('actor_actor_id_seq'::regclass)"
 ... ...
 128 records
+```
+
+Diccionario de datos con constraints
+
+```sql
+/* Lista por tabla (se debe indicar el nombre de la tabla y el schema),
+obtiene las constraints, ideal para ver en detalle cada tabla. */
+SELECT
+    c.column_name AS nombre_columna,
+    c.data_type AS tipo_dato,
+    c.character_maximum_length AS largo,
+	 tc.constraint_type AS tipo_constraint,
+    c.is_nullable AS es_null,
+    c.column_default AS defecto
+FROM
+    information_schema.columns c
+LEFT JOIN (
+    SELECT ccu.column_name, tc.constraint_type
+    FROM information_schema.constraint_column_usage ccu
+    JOIN information_schema.table_constraints tc
+	ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema
+    WHERE tc.table_name = 'payment' AND tc.table_schema = 'public'
+) tc
+ON c.column_name = tc.column_name
+WHERE c.table_name = 'payment' AND c.table_schema = 'public';
+```
+
+Output:
+
+```
+"payment_id"	"integer"		"PRIMARY KEY"	"NO"	"nextval('payment_payment_id_seq'::regclass)"
+"customer_id"	"smallint"		"FOREIGN KEY"	"NO"
+... ...
+6 records
 ```
 
 - Ver [diccionario de datos](./assets/files/dd_dvdrental.pdf) completo.
