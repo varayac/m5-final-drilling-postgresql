@@ -53,13 +53,49 @@ SELECT * FROM film WHERE release_year = 2006 AND rental_rate > 4.0;
 
 -- 5. Realiza un Diccionario de datos que contenga el nombre de las tablas y columnas, 
 -- si éstas pueden ser nulas, y su tipo de dato correspondiente.
-SELECT
-    table_name AS nombre_tabla,
-    column_name AS nombre_columna,
-    is_nullable AS acepta_nulos,
-    data_type AS tipo_dato
+
+/* information_schema es un esquema (schema) especial en PostgreSQL que contiene 
+una colección de vistas y tablas que proporcionan metadatos sobre la estructura y objetos 
+de la base de datos. Este esquema es parte del estándar SQL y está diseñado para ser 
+compatible con diferentes sistemas de gestión de bases de datos.
+
+Para realizar el Diccionario de datos se utilizarón estas tres vistas u objetos.
+ - information_schema.columns.
+ - information_schema.constraint_column_usage.
+ - information_schema.table_constraints.
+ */
+
+-- Lista todas las tablas y sus campos, excepto su constraint.
+SELECT 
+   table_name AS nombre_tabla,
+   column_name AS nombre_columna, 
+   udt_name AS tipo_dato, 
+   character_maximum_length AS largo,
+   is_nullable AS es_null, 
+   column_default AS defecto
 FROM
-    information_schema.columns
+   information_schema.columns
 WHERE
     table_schema = 'public'
 ORDER BY nombre_tabla;
+
+/* Lista por tabla (se debe indicar el nombre de la tabla y el schema),
+obtiene las constraints, ideal para ver en detalle cada tabla. */
+SELECT
+    c.column_name AS nombre_columna,
+    c.data_type AS tipo_dato,
+    c.character_maximum_length AS largo,
+	 tc.constraint_type AS tipo_constraint,
+    c.is_nullable AS es_null,
+    c.column_default AS defecto
+FROM
+    information_schema.columns c
+LEFT JOIN (
+    SELECT ccu.column_name, tc.constraint_type
+    FROM information_schema.constraint_column_usage ccu
+    JOIN information_schema.table_constraints tc
+	ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema
+    WHERE tc.table_name = 'payment' AND tc.table_schema = 'public'
+) tc
+ON c.column_name = tc.column_name
+WHERE c.table_name = 'payment' AND c.table_schema = 'public';
